@@ -156,6 +156,48 @@ class CPUCanvas {
   }
 
 
+  calculateSJF(orig_processes) {
+    let processes = [...orig_processes];
+    let sequence = [];
+    let time = 0;
+    let current = processes.shift();
+
+    sequence.push({
+      from: time,
+      to: time + current.duration,
+      process: current.index,
+    });
+    time += current.duration;
+
+    while (processes.length) {
+      let minDuration = processes[0].duration;
+      let index = 0;
+      let processArrived = false;
+      processes.forEach((process, i) => {
+        if (process.arrivalTime < time && process.duration < minDuration) {
+          minDuration = process.duration;
+          index = i;
+          processArrived = true;
+        }
+      });
+      // if (!processArrived) {
+      //   ++time;
+      //   continue;
+      // }
+
+      current = processes.splice(index, 1)[0];
+      console.log('current', current);
+      sequence.push({
+        from: time,
+        to: time + current.duration,
+        process: current.index,
+      });
+      time += current.duration;
+    }
+    return sequence;
+  }
+
+
   calculateRR(rawProcesses) {
     let requestQueue = [0];
     let sequence = [];
