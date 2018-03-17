@@ -10,14 +10,16 @@ window.onload = function () {
 
 class CPUCanvas {
   constructor() {
+    this.CANVAS_PADDING = 10;
+    this.CANVAS_TIMEFRAME_LENGTH = 50;
+
     this.canvas = document.getElementById('canvas')
     this.context = canvas.getContext('2d');
     this.rough = rough.canvas(this.canvas);
 
-    this.cpu = {
-      type: `fcfs`,
-      processes: this.generateProcesses(1, `fcfs`),
-    }
+
+    // Data about visualisation
+    this.cpu = this.generateNewCpu('fcfs', 4);
 
     this.initFormListeners();
     this.initCanvas();
@@ -25,11 +27,14 @@ class CPUCanvas {
     this.generateVisualisation();
   }
 
-
-
   // Helpers:
   randomNumber(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  randomRgba(alpha) {
+    const o = Math.round, r = Math.random, s = 255;
+    return 'rgba(' + o(r()*s) + ',' + o(r()*s) + ',' + o(r()*s) + ',' + alpha + ')';
   }
 
 
@@ -41,9 +46,9 @@ class CPUCanvas {
 
       /* do what you want with the form */
       const processCount = +document.getElementById('process_count').value;
+      const type = document.querySelector('input[name="type"]:checked').value;
 
-      this.cpu.type = document.querySelector('input[name="type"]:checked').value;
-      this.cpu.processes = this.generateProcesses(processCount, this.cpu.type);
+      this.cpu = this.generateNewCpu(type, processCount);
 
       this.generateVisualisation();
 
@@ -54,7 +59,6 @@ class CPUCanvas {
 
 
   generateVisualisation() {
-    this.clearTables();
     this.fillTables();
     this.clearCanvas();
     this.drawCanvas();
@@ -62,80 +66,79 @@ class CPUCanvas {
 
 
   // Process logic
+  generateNewCpu(type, count) {
+    const processes = this.generateProcesses(count, type);
+    const sequence = this.calculate(type, processes);
+    const cpu = { type, processes, sequence };
+    console.log('CPU:', cpu);
+
+    return cpu;
+  }
+
+
   generateProcesses(processCount, type) {
     let generatedProcesses = [];
+    let arrivalTime = 0;
 
     for (let i = 0; i < processCount; i++) {
       generatedProcesses.push({
-        processName: `Process #${i + 1}`,
+        name: `Process #${i + 1}`,
         order: i + 1,
         duration: this.randomNumber(1, 6),
+        arrivalTime,
+        color: this.randomRgba(0.5),
+        stroke: this.randomRgba(0.5),
       });
-    }
 
-    console.log(type, generatedProcesses);
+      arrivalTime += this.randomNumber(1, 4);
+    }
 
     return generatedProcesses;
   }
 
 
-  getProcessExecutionOrder() {
-
-  }
-
-
-
-  // Draw table/calculations
-  clearTables() {
-
-  }
-
-
-  fillTables() {
-    switch (this.cpu.type) {
+  calculate(type, processes) {
+    switch (type) {
       case `fcfs`:
-        this.fillFCFS();
-        break;
+        return this.calculateFCFS(processes);
       case `sjf`:
-        this.fillSJF();
-        break;
+        return this.calculateSJF(processes);
       case `rr`:
-        this.fillRR();
-        break;
+        return this.calculateRR(processes);
       case `p`:
-        this.fillP();
-        break;
+        return this.calculateP(processes);
       default:
-        break;
+        return [];
     }
   }
 
 
-  fillFCFS() {
-    this.generateTableFromJSON([
-      {
-        test: 1
-      },
-    ])
+  calculateFCFS(processes) {
+    let sequence = [];
+    let time = 0;
+
+    processes.forEach((process, i) => {
+      sequence.push({
+        from: time,
+        to: time + process.duration,
+        process: i,
+      });
+
+      time += process.duration;
+    });
+
+    return sequence;
   }
 
 
-  fillSJF() {
-
+  // Draw table/calculations
+  fillTables() {
+    this.generateTableFromJSON('processes', this.cpu.processes);
+    this.generateTableFromJSON('sequence', this.cpu.sequence);
   }
 
 
-  fillRR() {
-
-  }
-
-
-  fillP() {
-
-  }
-
-
-  generateTableFromJSON(data) {
+  generateTableFromJSON(id, data) {
     // EXTRACT VALUE FOR HTML HEADER.
     // ('Book ID', 'Book Name', 'Category' and 'Price')
     var col = [];
@@ -172,7 +175,7 @@ class CPUCanvas {
     }
 
     // FINALLY ADD THE NEWLY CREATED TABLE WITH JSON DATA TO A CONTAINER.
-    var divContainer = document.getElementById("showData");
+    var divContainer = document.getElementById(id);
     divContainer.innerHTML = "";
     divContainer.appendChild(table);
   }
@@ -198,6 +201,7 @@ class CPUCanvas {
 
 
   clearCanvas() {
+    console.log('Clear Canvas');
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.context.beginPath();
   }
@@ -205,23 +209,7 @@ class CPUCanvas {
 
   drawCanvas() {
     this.drawTimeLine();
-
-    switch (this.cpu.type) {
-      case `fcfs`:
-        this.drawFCFS();
-        break;
-      case `sjf`:
-        this.drawSJF();
-        break;
-      case `rr`:
-        this.drawRR();
-        break;
-      case `p`:
-        this.drawP();
-        break;
-      default:
-        break;
-    }
+    this.drawProcesses();
   }
 
 
@@ -230,20 +218,33 @@ class CPUCanvas {
     const timeframesToDraw = Math.max(duration, 20);
 
     for (let i = 0; i < timeframesToDraw; i++) {
-      this.rough.rectangle(10 + 50 * i, 10, 50, 50, { bowing: 0 });
+      this.rough.rectangle(
+        this.CANVAS_PADDING + this.CANVAS_TIMEFRAME_LENGTH * i, this.CANVAS_PADDING, this.CANVAS_TIMEFRAME_LENGTH, this.CANVAS_TIMEFRAME_LENGTH,
+        { bowing: 0 }
+      );
     }
   }
 
 
-  drawFCFS() { }
+  drawProcesses() {
+    this.cpu.sequence.forEach(seq => {
+      const process = this.cpu.processes[seq.process];
 
-
-  drawSJF() { }
-
-
-  drawRR() { }
-
-
-  drawP() { }
+      this.rough.rectangle(
+        this.CANVAS_PADDING + this.CANVAS_TIMEFRAME_LENGTH * seq.from,
+        this.CANVAS_PADDING,
+        this.CANVAS_TIMEFRAME_LENGTH * (seq.to - seq.from),
+        this.CANVAS_TIMEFRAME_LENGTH,
+        {
+          fill: process.color,
+          stroke: process.stroke,
+          fillWeight: 1,
+          strokeWidth: 3,
+          fillStyle: 'solid',
+          bowing: 1,
+        }
+      );
+    });
+  }
 
 }
