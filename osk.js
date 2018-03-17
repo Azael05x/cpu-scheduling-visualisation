@@ -5,13 +5,19 @@ window.onload = function () {
 class CPUCanvas {
   constructor() {
     // Constants
+    this.CANVAS_PADDING_TOP = 30;
     this.CANVAS_PADDING = 10;
     this.CANVAS_TIMEFRAME_LENGTH = 50;
     this.DURATION_MIN = 1;
     this.DURATION_MAX = 6;
     this.NEXT_ARRIVAL_MIN = 1;
     this.NEXT_ARRIVAL_MAX = 4;
-    this.PROCESS_TRANSPARENCY = 0.5;
+    this.PROCESS_TRANSPARENCY = 0.7;
+    this.TIMEFRAME_SECONDS_PADDING_TOP = 10;
+    this.TIMEFRAME_SECONDS_FONT_SIZE = 15;
+    this.TIMEFRAME_SECONDS_FONT_FAMILY = 'Arial';
+    this.PROCESS_NAME_FONT_SIZE = 15;
+    this.PROCESS_NAME_FONT_FAMILY = 'Arial';
 
 
     this.roundRobinTQ = +document.getElementById('rr_tq').value;
@@ -93,7 +99,7 @@ class CPUCanvas {
 
     for (let i = 0; i < processCount; i++) {
       const randomProcess = {
-        name: `Process #${i + 1}`,
+        name: `P${i + 1}`,
         order: i + 1,
         index: i,
         duration: this.randomNumber(this.DURATION_MIN, this.DURATION_MAX),
@@ -298,22 +304,32 @@ class CPUCanvas {
   drawTimeLine() {
     const timeframesToDraw = Math.floor((this.canvas.width - this.CANVAS_PADDING) / this.CANVAS_TIMEFRAME_LENGTH);
 
+    this.context.font = `${this.TIMEFRAME_SECONDS_FONT_SIZE}px ${this.TIMEFRAME_SECONDS_FONT_FAMILY}`;
+
     for (let i = 0; i < timeframesToDraw; i++) {
       this.rough.rectangle(
-        this.CANVAS_PADDING + this.CANVAS_TIMEFRAME_LENGTH * i, this.CANVAS_PADDING, this.CANVAS_TIMEFRAME_LENGTH, this.CANVAS_TIMEFRAME_LENGTH,
+        this.CANVAS_PADDING + this.CANVAS_TIMEFRAME_LENGTH * i, this.CANVAS_PADDING_TOP, this.CANVAS_TIMEFRAME_LENGTH, this.CANVAS_TIMEFRAME_LENGTH,
         { bowing: 0 }
+      );
+
+      this.context.strokeText(
+        i,
+        this.CANVAS_PADDING + this.CANVAS_TIMEFRAME_LENGTH * i,
+        this.CANVAS_PADDING_TOP + this.TIMEFRAME_SECONDS_PADDING_TOP + this.CANVAS_TIMEFRAME_LENGTH + this.TIMEFRAME_SECONDS_FONT_SIZE,
       );
     }
   }
 
 
   drawProcesses() {
+    this.context.font = `${this.PROCESS_NAME_FONT_SIZE}px ${this.PROCESS_NAME_FONT_FAMILY}`;
+
     this.cpu.sequence.forEach(seq => {
       const process = this.cpu.processes[seq.process];
 
       this.rough.rectangle(
         this.CANVAS_PADDING + this.CANVAS_TIMEFRAME_LENGTH * seq.from,
-        this.CANVAS_PADDING,
+        this.CANVAS_PADDING_TOP,
         this.CANVAS_TIMEFRAME_LENGTH * (seq.to - seq.from),
         this.CANVAS_TIMEFRAME_LENGTH,
         {
@@ -324,6 +340,19 @@ class CPUCanvas {
           fillStyle: 'solid',
           bowing: 1,
         }
+      );
+
+      console.log(
+        'start:', (this.CANVAS_PADDING + this.CANVAS_TIMEFRAME_LENGTH * seq.from),
+        'length:', (this.CANVAS_TIMEFRAME_LENGTH * (seq.to - seq.from)),
+        'end:', (this.CANVAS_PADDING + this.CANVAS_TIMEFRAME_LENGTH * seq.from) + (this.CANVAS_TIMEFRAME_LENGTH * (seq.to - seq.from)),
+        'center', (this.CANVAS_TIMEFRAME_LENGTH * (seq.to - seq.from)) / 2 + (this.CANVAS_PADDING + this.CANVAS_TIMEFRAME_LENGTH * seq.from)
+      )
+
+      this.context.strokeText(
+        process.name,
+        (this.CANVAS_TIMEFRAME_LENGTH * (seq.to - seq.from)) / 2 + (this.CANVAS_PADDING + this.CANVAS_TIMEFRAME_LENGTH * seq.from) - 5,
+        this.CANVAS_PADDING_TOP - this.PROCESS_NAME_FONT_SIZE,
       );
     });
   }
