@@ -2,12 +2,6 @@ window.onload = function () {
   new CPUCanvas();
 };
 
-// Process types:
-// `fcfs`
-// `sjf`
-// `rr`
-// `p`
-
 class CPUCanvas {
   constructor() {
     // Constants
@@ -158,7 +152,7 @@ class CPUCanvas {
     let sequence = [];
     let time = 0;
 
-    const allCompleted = () => processes.reduce((a, b) => a + b.burstTime, 0);
+    const allCompleted = () => processes.reduce((a, b) => a + b.burstTime, 0) === 0;
     const activeProcesses = () => processes.filter(process => process.arrivalTime <= time && process.burstTime > 0);
     const executeProcess = (processIndex) => {
       const executionTime = Math.min(this.ROUND_ROBIN_TQ, processes[processIndex].burstTime);
@@ -180,7 +174,6 @@ class CPUCanvas {
       });
     };
 
-    console.log(rawProcesses);
     const processes = rawProcesses.map(process => {
       return {
         index: process.index,
@@ -189,13 +182,7 @@ class CPUCanvas {
       }
     });
 
-      console.log(processes);
-
-    let i = 50;
-    // !allCompleted()
-    while (i--) {
-      console.log(requestQueue, allCompleted());
-
+    while (!allCompleted()) {
       // Get next process we should execute from processes
       const processIndex = requestQueue.shift();
 
