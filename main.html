@@ -20,6 +20,10 @@
       display: block;
     }
 
+    th:first-letter {
+     text-transform:capitalize;
+    }
+
     /* To remove the scrollbars */
   </style>
 </head>
@@ -55,11 +59,13 @@
     </div>
   </form>
 
-  <h3>Table</h3>
+  <h3>Procesi</h3>
   <div id="processes"></div>
+
+  <h3>Procesu izpildes laiki</h3>
   <div id="sequence"></div>
 
-  <h3>Canvas</h3>
+  <h3>Procesu izpildes laiku vizualziācija</h3>
   <canvas id="canvas"></canvas>
 
   <script src="https://rawgit.com/pshihn/rough/master/dist/rough.min.js"></script>

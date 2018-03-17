@@ -222,8 +222,25 @@ class CPUCanvas {
 
   // Draw table/calculations
   fillTables() {
-    this.generateTableFromJSON('processes', this.cpu.processes);
-    this.generateTableFromJSON('sequence', this.cpu.sequence);
+    const processTableData = this.cpu.processes.map(process => {
+      return {
+        name: process.name,
+        arrival: process.arrivalTime,
+        duration: process.duration,
+      };
+    });
+
+
+    const sequenceTable = this.cpu.sequence.map(seq => {
+      return {
+        process: this.cpu.processes[seq.process].name,
+        from: seq.from,
+        to: seq.to,
+      };
+    });
+
+    this.generateTableFromJSON('processes', processTableData);
+    this.generateTableFromJSON('sequence', sequenceTable);
   }
 
 
