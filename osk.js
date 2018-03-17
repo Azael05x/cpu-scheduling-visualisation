@@ -10,27 +10,39 @@ window.onload = function () {
 
 class CPUCanvas {
   constructor() {
+    // Constants
     this.CANVAS_PADDING = 10;
     this.CANVAS_TIMEFRAME_LENGTH = 50;
+    this.ROUND_ROBIN_TQ = 3;
+    this.DURATION_MIN = 1;
+    this.DURATION_MAX = 6;
+    this.NEXT_ARRIVAL_MIN = 1;
+    this.NEXT_ARRIVAL_MAX = 4;
+    this.PROCESS_TRANSPARENCY = 0.5;
 
+    // Canvas
     this.canvas = document.getElementById('canvas')
     this.context = canvas.getContext('2d');
     this.rough = rough.canvas(this.canvas);
 
+    // Generate new CPU
+    this.cpu = this.generateNewCpu('rr', 4);
 
-    // Data about visualisation
-    this.cpu = this.generateNewCpu('fcfs', 4);
-
+    // Initialize visualisation page
     this.initFormListeners();
     this.initCanvas();
 
+    // Generate new visualisation
     this.generateVisualisation();
   }
+
+
 
   // Helpers:
   randomNumber(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
+
 
   randomRgba(alpha) {
     const o = Math.round, r = Math.random, s = 255;
@@ -81,16 +93,19 @@ class CPUCanvas {
     let arrivalTime = 0;
 
     for (let i = 0; i < processCount; i++) {
-      generatedProcesses.push({
+      const randomProcess = {
         name: `Process #${i + 1}`,
         order: i + 1,
-        duration: this.randomNumber(1, 6),
+        duration: this.randomNumber(this.DURATION_MIN, this.DURATION_MAX),
         arrivalTime,
-        color: this.randomRgba(0.5),
-        stroke: this.randomRgba(0.5),
-      });
+        color: this.randomRgba(this.PROCESS_TRANSPARENCY),
+        stroke: this.randomRgba(this.PROCESS_TRANSPARENCY),
+      };
 
-      arrivalTime += this.randomNumber(1, 4);
+      generatedProcesses.push(randomProcess);
+
+      // Update arrival time of next process;
+      arrivalTime += this.randomNumber(this.NEXT_ARRIVAL_MIN, this.NEXT_ARRIVAL_MAX);
     }
 
     return generatedProcesses;
@@ -128,6 +143,11 @@ class CPUCanvas {
     });
 
     return sequence;
+  }
+
+
+  calculateRR() {
+    return [];
   }
 
 
@@ -201,7 +221,6 @@ class CPUCanvas {
 
 
   clearCanvas() {
-    console.log('Clear Canvas');
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.context.beginPath();
   }
@@ -214,8 +233,7 @@ class CPUCanvas {
 
 
   drawTimeLine() {
-    const duration = this.cpu.processes.reduce((a, obj) => a + obj.duration, 0);
-    const timeframesToDraw = Math.max(duration, 20);
+    const timeframesToDraw = Math.floor(this.canvas.width / this.CANVAS_TIMEFRAME_LENGTH);
 
     for (let i = 0; i < timeframesToDraw; i++) {
       this.rough.rectangle(
