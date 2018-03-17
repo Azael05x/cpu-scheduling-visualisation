@@ -7,12 +7,14 @@ class CPUCanvas {
     // Constants
     this.CANVAS_PADDING = 10;
     this.CANVAS_TIMEFRAME_LENGTH = 50;
-    this.ROUND_ROBIN_TQ = 3;
     this.DURATION_MIN = 1;
     this.DURATION_MAX = 6;
     this.NEXT_ARRIVAL_MIN = 1;
     this.NEXT_ARRIVAL_MAX = 4;
     this.PROCESS_TRANSPARENCY = 0.5;
+
+
+    this.roundRobinTQ = +document.getElementById('rr_tq').value;
 
     // Canvas
     this.canvas = document.getElementById('canvas')
@@ -55,6 +57,7 @@ class CPUCanvas {
       /* do what you want with the form */
       const processCount = +document.getElementById('process_count').value;
       const type = document.querySelector('input[name="type"]:checked').value;
+      this.roundRobinTQ = +document.getElementById('rr_tq').value;
 
       this.cpu = this.generateNewCpu(type, processCount);
 
@@ -155,7 +158,7 @@ class CPUCanvas {
     const allCompleted = () => processes.reduce((a, b) => a + b.burstTime, 0) === 0;
     const activeProcesses = () => processes.filter(process => process.arrivalTime <= time && process.burstTime > 0);
     const executeProcess = (processIndex) => {
-      const executionTime = Math.min(this.ROUND_ROBIN_TQ, processes[processIndex].burstTime);
+      const executionTime = Math.min(this.roundRobinTQ, processes[processIndex].burstTime);
       processes[processIndex].burstTime -= executionTime;
 
       sequence.push({
