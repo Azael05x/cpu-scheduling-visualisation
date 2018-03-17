@@ -26,7 +26,9 @@ class CPUCanvas {
     this.rough = rough.canvas(this.canvas);
 
     // Generate new CPU
-    this.cpu = this.generateNewCpu('rr', 4);
+    const processCount = +document.getElementById('process_count').value;
+    const type = document.querySelector('input[name="type"]:checked').value;
+    this.cpu = this.generateNewCpu(type, processCount);
 
     // Initialize visualisation page
     this.initFormListeners();
@@ -96,6 +98,7 @@ class CPUCanvas {
       const randomProcess = {
         name: `Process #${i + 1}`,
         order: i + 1,
+        index: i,
         duration: this.randomNumber(this.DURATION_MIN, this.DURATION_MAX),
         arrivalTime,
         color: this.randomRgba(this.PROCESS_TRANSPARENCY),
@@ -133,6 +136,10 @@ class CPUCanvas {
     let time = 0;
 
     processes.forEach((process, i) => {
+      if (process.arrivalTime > time) {
+        time = process.arrivalTime;
+      }
+
       sequence.push({
         from: time,
         to: time + process.duration,
@@ -146,8 +153,74 @@ class CPUCanvas {
   }
 
 
-  calculateRR() {
-    return [];
+  calculateRR(rawProcesses) {
+    let requestQueue = [0];
+    let sequence = [];
+    let time = 0;
+
+    const allCompleted = () => processes.reduce((a, b) => a + b.burstTime, 0);
+    const activeProcesses = () => processes.filter(process => process.arrivalTime <= time && process.burstTime > 0);
+    const executeProcess = (processIndex) => {
+      const executionTime = Math.min(this.ROUND_ROBIN_TQ, processes[processIndex].burstTime);
+      processes[processIndex].burstTime -= executionTime;
+
+      sequence.push({
+        from: time,
+        to: time + executionTime,
+        process: processIndex,
+      });
+
+      time += executionTime;
+    };
+    const enqueueProcesses = (nextProcesses) => {
+      nextProcesses.forEach(process => {
+        if (requestQueue.indexOf(process.index) === -1) {
+          requestQueue.push(process.index);
+        }
+      });
+    };
+
+    console.log(rawProcesses);
+    const processes = rawProcesses.map(process => {
+      return {
+        index: process.index,
+        arrivalTime: process.arrivalTime,
+        burstTime: process.duration
+      }
+    });
+
+      console.log(processes);
+
+    let i = 50;
+    // !allCompleted()
+    while (i--) {
+      console.log(requestQueue, allCompleted());
+
+      // Get next process we should execute from processes
+      const processIndex = requestQueue.shift();
+
+      // If queue has process enqueued, execute it
+      if (Number.isInteger(processIndex)) {
+        executeProcess(processIndex);
+      } else {
+        time += 1;
+      }
+
+      // Find active processes without current executed process
+      let nextProcesses = activeProcesses().filter(process => process.index !== processIndex);
+      let currentProcess = activeProcesses().filter(process => process.index === processIndex)[0];
+
+      // If current process is still active add it to the next processes end
+      if (currentProcess) {
+        nextProcesses.push(currentProcess);
+      }
+
+
+      // Add those processes to request queue, if they are already not added
+      enqueueProcesses(nextProcesses);
+    }
+
+    return sequence;
   }
 
 
@@ -233,7 +306,7 @@ class CPUCanvas {
 
 
   drawTimeLine() {
-    const timeframesToDraw = Math.floor(this.canvas.width / this.CANVAS_TIMEFRAME_LENGTH);
+    const timeframesToDraw = Math.floor((this.canvas.width - this.CANVAS_PADDING) / this.CANVAS_TIMEFRAME_LENGTH);
 
     for (let i = 0; i < timeframesToDraw; i++) {
       this.rough.rectangle(
