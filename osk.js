@@ -11,7 +11,7 @@ class CPUCanvas {
     this.DURATION_MIN = 1;
     this.DURATION_MAX = 6;
     this.NEXT_ARRIVAL_MIN = 1;
-    this.NEXT_ARRIVAL_MAX = 4;
+    this.NEXT_ARRIVAL_MAX = 2;
     this.PROCESS_TRANSPARENCY = 0.7;
     this.TIMEFRAME_SECONDS_PADDING_TOP = 10;
     this.TIMEFRAME_SECONDS_FONT_SIZE = 15;
@@ -157,43 +157,38 @@ class CPUCanvas {
 
 
   calculateSJF(orig_processes) {
-    let processes = [...orig_processes];
+    let processes = [...orig_processes]; // Copy processes so original processes would not get touched
     let sequence = [];
     let time = 0;
-    let current = processes.shift();
 
-    sequence.push({
-      from: time,
-      to: time + current.duration,
-      process: current.index,
-    });
-    time += current.duration;
+    const activeProcesses = () => processes.filter(process => process.arrivalTime <= time && !process.done);
+    const shortestActiveProcess = () => {
+      if (activeProcesses().length > 0) {
+        const minDuration = activeProcesses().sort((x, z) => x.duration - z.duration)[0].duration;
+        const smallestProcesses = activeProcesses().filter(process => process.duration === minDuration);
+        return smallestProcesses.sort((x, z) => x.order - z.order)[0];
+      } else {
+        return undefined;
+      }
+    };
+    const allDone = () => processes.filter(process => !process.done).length === 0;
 
-    while (processes.length) {
-      let minDuration = processes[0].duration;
-      let index = 0;
-      let processArrived = false;
-      processes.forEach((process, i) => {
-        if (process.arrivalTime < time && process.duration < minDuration) {
-          minDuration = process.duration;
-          index = i;
-          processArrived = true;
-        }
-      });
-      // if (!processArrived) {
-      //   ++time;
-      //   continue;
-      // }
+    while (!allDone()) {
+      const activeProcess = shortestActiveProcess();
 
-      current = processes.splice(index, 1)[0];
-      console.log('current', current);
-      sequence.push({
-        from: time,
-        to: time + current.duration,
-        process: current.index,
-      });
-      time += current.duration;
+      if (!!activeProcess) {
+        sequence.push({
+          from: time,
+          to: time + activeProcess.duration,
+          process: activeProcess.index,
+        });
+        time += activeProcess.duration;
+        processes[activeProcess.index].done = true;
+      } else {
+        ++time;
+      }
     }
+
     return sequence;
   }
 
@@ -400,13 +395,6 @@ class CPUCanvas {
           bowing: 1,
         }
       );
-
-      console.log(
-        'start:', (this.CANVAS_PADDING + this.CANVAS_TIMEFRAME_LENGTH * seq.from),
-        'length:', (this.CANVAS_TIMEFRAME_LENGTH * (seq.to - seq.from)),
-        'end:', (this.CANVAS_PADDING + this.CANVAS_TIMEFRAME_LENGTH * seq.from) + (this.CANVAS_TIMEFRAME_LENGTH * (seq.to - seq.from)),
-        'center', (this.CANVAS_TIMEFRAME_LENGTH * (seq.to - seq.from)) / 2 + (this.CANVAS_PADDING + this.CANVAS_TIMEFRAME_LENGTH * seq.from)
-      )
 
       this.context.strokeText(
         process.name,
