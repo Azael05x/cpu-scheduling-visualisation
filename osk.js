@@ -10,6 +10,8 @@ class CPUCanvas {
     this.CANVAS_TIMEFRAME_LENGTH = 50;
     this.DURATION_MIN = 1;
     this.DURATION_MAX = 6;
+    this.PRIORITY_MIN = 1;
+    this.PRIORITY_MAX = 7;
     this.NEXT_ARRIVAL_MIN = 1;
     this.NEXT_ARRIVAL_MAX = 2;
     this.PROCESS_TRANSPARENCY = 0.7;
@@ -92,11 +94,10 @@ class CPUCanvas {
     return cpu;
   }
 
-
   generateProcesses(processCount, type) {
     let generatedProcesses = [];
     let arrivalTime = 0;
-
+	
     for (let i = 0; i < processCount; i++) {
       const randomProcess = {
         name: `P${i + 1}`,
@@ -104,6 +105,7 @@ class CPUCanvas {
         index: i,
         duration: this.randomNumber(this.DURATION_MIN, this.DURATION_MAX),
         arrivalTime,
+		priority: this.randomNumber(this.PRIORITY_MIN, this.PRIORITY_MAX),
         color: this.randomRgba(this.PROCESS_TRANSPARENCY),
         stroke: this.randomRgba(this.PROCESS_TRANSPARENCY),
       };
@@ -255,6 +257,59 @@ class CPUCanvas {
 
     return sequence;
   }
+  
+  calculateP(orig_processes) {
+	let processes = [...orig_processes]; // Copy processes so original processes would not get touched
+	
+	let arrivedProcesses = []; // Processes which have already arrived at specific time moment
+	let sequence = [];
+	let time = 0;	// Current time
+	
+	let currentProcessId = -1;
+	let currentProcessStarts = -1;
+	let currentProcessEnds = -1;
+	
+	const allDone = () => processes.filter(process => !process.done).length === 0;
+	const highestPriorityProcess = (processesArray) => processesArray.reduce((a, b) => a.priority <= b.priority ? a : b);
+	
+	// Find processes which arrive at specific time point
+	const arrivesNow = (time) => processes.filter(process => process.arrivalTime === time);
+	
+	while(!allDone()){
+		if(time === currentProcessEnds){ // If current process finishes
+			sequence.push({
+				from: currentProcessStarts,
+				to: currentProcessEnds,
+				process: currentProcessId,
+			});
+			processes[currentProcessId].done = true;
+			
+			// find finished process
+			const finishedProcess = arrivedProcesses.find(process => process.index === currentProcessId);
+			// and remove it
+			arrivedProcesses.splice(arrivedProcesses.indexOf(finishedProcess),1);
+		}
+		
+		// Add processes which arrive at this time moment to arrived processes array
+		arrivedProcesses.push(...arrivesNow(time));
+		
+		// If there are any arrived processes
+		if(arrivedProcesses.length > 0)
+		{		
+			// Select highest priority process
+			const currentProcess = highestPriorityProcess(arrivedProcesses);
+			
+			// If highest priority process is not the same as current running process
+			if(currentProcessId !== currentProcess.index){
+				currentProcessId = currentProcess.index;
+				currentProcessStarts = time;
+				currentProcessEnds = time + currentProcess.duration;
+			}	
+		}
+		time++;
+	}
+	return sequence;
+  }
 
 
   // Draw table/calculations
@@ -264,6 +319,7 @@ class CPUCanvas {
         name: process.name,
         arrival: process.arrivalTime,
         duration: process.duration,
+		priority: process.priority		
       };
     });
 
